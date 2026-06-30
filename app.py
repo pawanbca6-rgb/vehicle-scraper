@@ -31,7 +31,7 @@ st.markdown("""
     .footer-text { text-align: center; font-size: 14px; color: #9CA3AF; margin-top: 50px; padding-top: 20px; border-top: 1px solid #E5E7EB; }
     .note-box { background-color: #FEF3C7; color: #92400E; padding: 12px; border-radius: 6px; border-left: 4px solid #F59E0B; margin-bottom: 15px; font-size: 14px; font-weight: 500; }
     </style>
-""", unsafe_allowed_html=True)
+""", unsafe_allow_html=True)
 
 # --- SIDEBAR CONTROL PANEL ---
 with st.sidebar:
@@ -63,15 +63,15 @@ with st.sidebar:
     st.caption("Engine State: Production Cloud Cluster")
 
 # --- MAIN APP LAYOUT ---
-st.markdown('<div class="main-header">🚗 Royal Sundaram Image Tool</div>', unsafe_allowed_html=True)
-st.markdown('<div class="sub-header">Automated server-side bulk extraction utility for final survey insurance file elements.</div>', unsafe_allowed_html=True)
+st.markdown('<div class="main-header">🚗 Royal Sundaram Image Tool</div>', unsafe_allowed_html=False)
+st.markdown('<div class="sub-header">Automated server-side bulk extraction utility for final survey insurance file elements.</div>', unsafe_allowed_html=False)
 
 # Requirement Guidelines Box
 st.markdown("""
     <div class="note-box">
         📌 <strong>Note:</strong> Please upload an Excel sheet containing <strong>Registration_No</strong> in the first column and your target portal <strong>Link</strong> in the second column.
     </div>
-""", unsafe_allowed_html=True)
+""", unsafe_allow_html=True)
 
 layout_left, layout_right = st.columns([2, 1])
 
@@ -131,7 +131,7 @@ if uploaded_file is not None:
                     <span style='font-size:13px; color:#6B7280; text-transform: uppercase; font-weight:bold;'>Validated Queue Load</span><br>
                     <span style='font-size:32px; font-weight:bold; color:#1E3A8A;'>{total_vehicles_count} Target Rows</span>
                 </div>
-            """, unsafe_allowed_html=True)
+            """, unsafe_allow_html=True)
             
         with st.sidebar:
             st.write(" ")
@@ -311,4 +311,4 @@ if uploaded_file is not None:
                     )
 
 # --- AUTHOR FOOTER SECTION ---
-st.markdown('<div class="footer-text">🛠️ Images Tool Engineered and Optimized by <b>Pawan Pandey</b></div>', unsafe_allowed_html=True)
+st.markdown('<div class="footer-text">🛠️ Images Tool Engineered and Optimized by <b>Pawan Pandey</b></div>', unsafe_allow_html=True)
