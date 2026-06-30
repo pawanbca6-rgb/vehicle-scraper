@@ -22,7 +22,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Design Palette Injection
 st.markdown("""
     <style>
     .main-header { font-size: 34px; font-weight: 800; color: #1E3A8A; margin-bottom: 2px; }
@@ -33,20 +32,17 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- SIDEBAR CONTROL PANEL ---
 with st.sidebar:
     st.markdown("### 🎛️ Control & Template Center")
     st.write("Use this panel to verify specifications or pull down a template layout.")
     st.write("---")
     
-    # Generate Sample Template Data Frame on the fly
     sample_data = {
         "Registration_No": ["OD01Z0269", "DL3CABC123"],
         "Link": ["https://icma.royalsundaram.in/...", "https://icma.royalsundaram.in/..."]
     }
     sample_df = pd.DataFrame(sample_data)
     
-    # Convert to Excel Byte Stream
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
         sample_df.to_excel(writer, index=False, sheet_name='Sheet1')
@@ -62,11 +58,9 @@ with st.sidebar:
     st.write("---")
     st.caption("Engine State: Production Cloud Cluster")
 
-# --- MAIN APP LAYOUT ---
 st.markdown("## 🚗 Royal Sundaram Image Tool")
 st.markdown("##### Automated server-side bulk extraction utility for final survey insurance file elements.")
 
-# Requirement Guidelines Box
 st.markdown("""
     <div class="note-box">
         📌 <strong>Note:</strong> Please upload an Excel sheet containing <strong>Registration_No</strong> in the first column and your target portal <strong>Link</strong> in the second column.
@@ -79,12 +73,10 @@ with layout_left:
     st.markdown("### 📂 Document Upload")
     uploaded_file = st.file_uploader("Drop target xlsx file context here", type=["xlsx"], label_visibility="collapsed")
 
-# Core Engine Workers
 def extract_claim_from_text(text):
     match = re.search(r'([A-Z]{2}\d{8})', str(text))
     return match.group(1) if match else None
 
-# --- SMART ADAPTIVE EXTRACTION ENGINE ---
 def extract_and_clean_pdf(pdf_path, output_folder, pdf_base_name):
     try:
         if os.path.getsize(pdf_path) == 0:
@@ -94,53 +86,23 @@ def extract_and_clean_pdf(pdf_path, output_folder, pdf_base_name):
         doc = fitz.open(pdf_path)
         img_count = 0
         
-        # High resolution matrix for page layout rendering (300 DPI equivalent)
-        zoom_matrix = fitz.Matrix(4.16, 4.16)
-        
         for page_index in range(len(doc)):
             page = doc[page_index]
-            images = page.get_images(full=True)
             
-            # CASE 1: Split Images Detected (Page contains multiple fragmented image bands)
-            if len(images) > 1:
-                # Render page layout context into a single unified image stream
-                pix = page.get_pixmap(matrix=zoom_matrix, alpha=False)
-                image_bytes = pix.tobytes("jpeg")
-                image_ext = "jpeg"
+            # Optimized Resolution: Matrix(1.5, 1.5) RAM memory consumption 50% kam karega aur text readability perfect rakhega
+            matrix = fitz.Matrix(1.5, 1.5)
+            pix = page.get_pixmap(matrix=matrix, alpha=False)
+            
+            img_hash = hashlib.md5(pix.samples).hexdigest()[:6]
+            image_name = f"{pdf_base_name}_page{page_index+1}_{img_hash}.jpg"
+            image_path = os.path.join(output_folder, image_name)
+            
+            if os.path.exists(image_path):
+                continue
                 
-                img_hash = hashlib.md5(image_bytes).hexdigest()[:6]
-                image_name = f"{pdf_base_name}_p{page_index+1}_{img_hash}.{image_ext}"
-                image_path = os.path.join(output_folder, image_name)
-                
-                if os.path.exists(image_path):
-                    image_name = f"{pdf_base_name}_p{page_index+1}_dup_{img_count}.{image_ext}"
-                    image_path = os.path.join(output_folder, image_name)
-                    
-                with open(image_path, "wb") as f:
-                    f.write(image_bytes)
-                img_count += 1
-                
-            # CASE 2: Clean/Standard Images (Page contains a single grid layout or image block)
-            elif len(images) == 1:
-                # Direct extraction method preserves original encoding without alteration
-                img = images[0]
-                xref = img[0]
-                base_image = doc.extract_image(xref)
-                image_bytes = base_image["image"]
-                image_ext = base_image["ext"]
-                
-                img_hash = hashlib.md5(image_bytes).hexdigest()[:6]
-                image_name = f"{pdf_base_name}_p{page_index+1}_i1_{img_hash}.{image_ext}"
-                image_path = os.path.join(output_folder, image_name)
-                
-                if os.path.exists(image_path):
-                    image_name = f"{pdf_base_name}_p{page_index+1}_i1_dup_{img_count}.{image_ext}"
-                    image_path = os.path.join(output_folder, image_name)
-                    
-                with open(image_path, "wb") as f:
-                    f.write(image_bytes)
-                img_count += 1
-                
+            pix.save(image_path)
+            img_count += 1
+            
         doc.close()
         if os.path.exists(pdf_path): os.remove(pdf_path)
         return img_count
@@ -177,17 +139,18 @@ if uploaded_file is not None:
                 shutil.rmtree(CURRENT_BATCH_DIR)
             os.makedirs(CURRENT_BATCH_DIR, exist_ok=True)
             
-            # Cloud Execution Environment Arguments
+            # Strict Lightweight Headless Configuration for low RAM cloud limits
             chrome_options = webdriver.ChromeOptions()
             chrome_options.add_argument("--headless=new")
             chrome_options.add_argument("--no-sandbox")
             chrome_options.add_argument("--disable-dev-shm-usage")
             chrome_options.add_argument("--disable-gpu")
-            chrome_options.add_argument("--window-size=1920,1080")
+            chrome_options.add_argument("--window-size=1280,720")
             chrome_options.add_argument("--remote-allow-origins=*")
             chrome_options.binary_location = "/usr/bin/chromium"
             
             try:
+                # Direct pointer to fixed docker path to bypass webdriver_manager freeze bugs
                 chrome_service = Service("/usr/bin/chromedriver")
                 driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
             except Exception as driver_err:
@@ -288,14 +251,14 @@ if uploaded_file is not None:
                                                         row_extracted_images_total += imgs_saved
                                                         file_success = True
                                                         break
-                                        time.sleep(4)
+                                        time.sleep(3)
                                     except Exception:
-                                        time.sleep(4)
+                                        time.sleep(3)
                                 
                                 if not file_success:
                                     row_failed_files += 1
                                     if os.path.exists(file_save_path): os.remove(file_save_path)
-                                time.sleep(2)
+                                time.sleep(1)
                         except Exception:
                             row_failed_files = row_total_files
                         
@@ -316,7 +279,6 @@ if uploaded_file is not None:
                 driver.quit()
                 operation_context.update(label="🚀 Data Compiling Finished!", state="complete", expanded=False)
                 
-            # --- CONSOLIDATED SINGLE DOWNLOAD ARCHIVE BUILDER ---
             if report_data:
                 report_df = pd.DataFrame(report_data)
                 report_csv_path = os.path.join(CURRENT_BATCH_DIR, "Execution_Report.csv")
@@ -343,5 +305,4 @@ if uploaded_file is not None:
                         use_container_width=True
                     )
 
-# --- AUTHOR FOOTER SECTION ---
 st.markdown('<div class="footer-text">🛠️ Images Tool Engineered and Optimized by <b>Pawan Pandey</b></div>', unsafe_allow_html=True)
