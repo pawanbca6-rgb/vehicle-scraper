@@ -84,30 +84,63 @@ def extract_claim_from_text(text):
     match = re.search(r'([A-Z]{2}\d{8})', str(text))
     return match.group(1) if match else None
 
+# --- SMART ADAPTIVE EXTRACTION ENGINE ---
 def extract_and_clean_pdf(pdf_path, output_folder, pdf_base_name):
     try:
         if os.path.getsize(pdf_path) == 0:
             if os.path.exists(pdf_path): os.remove(pdf_path)
             return 0
+        
         doc = fitz.open(pdf_path)
         img_count = 0
+        
+        # High resolution matrix for page layout rendering (300 DPI equivalent)
+        zoom_matrix = fitz.Matrix(4.16, 4.16)
+        
         for page_index in range(len(doc)):
             page = doc[page_index]
             images = page.get_images(full=True)
-            for img_index, img in enumerate(images):
+            
+            # CASE 1: Split Images Detected (Page contains multiple fragmented image bands)
+            if len(images) > 1:
+                # Render page layout context into a single unified image stream
+                pix = page.get_pixmap(matrix=zoom_matrix, alpha=False)
+                image_bytes = pix.tobytes("jpeg")
+                image_ext = "jpeg"
+                
+                img_hash = hashlib.md5(image_bytes).hexdigest()[:6]
+                image_name = f"{pdf_base_name}_p{page_index+1}_{img_hash}.{image_ext}"
+                image_path = os.path.join(output_folder, image_name)
+                
+                if os.path.exists(image_path):
+                    image_name = f"{pdf_base_name}_p{page_index+1}_dup_{img_count}.{image_ext}"
+                    image_path = os.path.join(output_folder, image_name)
+                    
+                with open(image_path, "wb") as f:
+                    f.write(image_bytes)
+                img_count += 1
+                
+            # CASE 2: Clean/Standard Images (Page contains a single grid layout or image block)
+            elif len(images) == 1:
+                # Direct extraction method preserves original encoding without alteration
+                img = images[0]
                 xref = img[0]
                 base_image = doc.extract_image(xref)
                 image_bytes = base_image["image"]
                 image_ext = base_image["ext"]
+                
                 img_hash = hashlib.md5(image_bytes).hexdigest()[:6]
-                image_name = f"{pdf_base_name}_p{page_index+1}_i{img_index+1}_{img_hash}.{image_ext}"
+                image_name = f"{pdf_base_name}_p{page_index+1}_i1_{img_hash}.{image_ext}"
                 image_path = os.path.join(output_folder, image_name)
+                
                 if os.path.exists(image_path):
-                    image_name = f"{pdf_base_name}_p{page_index+1}_i{img_index+1}_dup_{img_count}.{image_ext}"
+                    image_name = f"{pdf_base_name}_p{page_index+1}_i1_dup_{img_count}.{image_ext}"
                     image_path = os.path.join(output_folder, image_name)
+                    
                 with open(image_path, "wb") as f:
                     f.write(image_bytes)
                 img_count += 1
+                
         doc.close()
         if os.path.exists(pdf_path): os.remove(pdf_path)
         return img_count
