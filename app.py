@@ -99,6 +99,15 @@ def extract_and_clean_pdf(pdf_path, output_folder, pdf_base_name):
                 base_image = doc.extract_image(xref)
                 image_bytes = base_image["image"]
                 image_ext = base_image["ext"]
+                
+                # Get image dimensions to filter out small icons/stamps/slices
+                width = base_image.get("width", 0)
+                height = base_image.get("height", 0)
+                
+                # 🛠️ FILTER: Agar image bahut choti hai (watermark/logo/stamp/slice), toh skip karein
+                if width < 150 or height < 150:
+                    continue
+                    
                 img_hash = hashlib.md5(image_bytes).hexdigest()[:6]
                 image_name = f"{pdf_base_name}_p{page_index+1}_i{img_index+1}_{img_hash}.{image_ext}"
                 image_path = os.path.join(output_folder, image_name)
