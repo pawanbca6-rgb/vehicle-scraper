@@ -63,8 +63,8 @@ with st.sidebar:
     st.caption("Engine State: Production Cloud Cluster")
 
 # --- MAIN APP LAYOUT ---
-st.markdown('<div class="main-header">🚗 Royal Sundaram Image Tool</div>', unsafe_allowed_html=False)
-st.markdown('<div class="sub-header">Automated server-side bulk extraction utility for final survey insurance file elements.</div>', unsafe_allowed_html=False)
+st.markdown("## 🚗 Royal Sundaram Image Tool")
+st.markdown("##### Automated server-side bulk extraction utility for final survey insurance file elements.")
 
 # Requirement Guidelines Box
 st.markdown("""
