@@ -30,6 +30,21 @@ st.markdown("""
     .metric-box { background-color: #F3F4F6; padding: 18px; border-radius: 10px; border-left: 6px solid #2563EB; box-shadow: 0 2px 4px rgba(0,0,0,0.04); }
     .footer-text { text-align: center; font-size: 14px; color: #9CA3AF; margin-top: 50px; padding-top: 20px; border-top: 1px solid #E5E7EB; }
     .note-box { background-color: #FEF3C7; color: #92400E; padding: 12px; border-radius: 6px; border-left: 4px solid #F59E0B; margin-bottom: 15px; font-size: 14px; font-weight: 500; }
+    
+    /* 🛠️ REMOVE STREAMLIT DEFAULT XLSX LIMIT TEXT */
+    div[data-testid="stFileUploaderDropzoneInstructions"] > div > small {
+        display: none !important;
+    }
+    
+    /* 🎯 INJECT YOUR NEW CUSTOM WARNING TEXT */
+    div[data-testid="stFileUploaderDropzoneInstructions"] > div::after {
+        content: "⚠️ Upload only 1 vehicle Link in a single time for better result";
+        font-size: 13px;
+        color: #DC2626; /* Warning red tone */
+        font-weight: 600;
+        display: block;
+        margin-top: 6px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -89,7 +104,6 @@ def extract_and_clean_pdf(pdf_path, output_folder, pdf_base_name):
         if total_pages > 15:
             for page_index in range(total_pages):
                 page = doc[page_index]
-                # Lower matrix footprint for 512MB cloud environment
                 matrix = fitz.Matrix(1.2, 1.2) 
                 pix = page.get_pixmap(matrix=matrix, alpha=False)
                 
@@ -100,7 +114,7 @@ def extract_and_clean_pdf(pdf_path, output_folder, pdf_base_name):
                 if not os.path.exists(image_path):
                     pix.save(image_path)
                     img_count += 1
-                pix = None  # Free explicit pixmap data
+                pix = None  
         else:
             for page_index in range(total_pages):
                 page = doc[page_index]
@@ -157,13 +171,12 @@ if uploaded_file is not None:
                 shutil.rmtree(CURRENT_BATCH_DIR)
             os.makedirs(CURRENT_BATCH_DIR, exist_ok=True)
             
-            # Heavy Headless Optimization Options for memory capping
             chrome_options = webdriver.ChromeOptions()
             chrome_options.add_argument("--headless=new")
             chrome_options.add_argument("--no-sandbox")
             chrome_options.add_argument("--disable-dev-shm-usage")
             chrome_options.add_argument("--disable-gpu")
-            chrome_options.add_argument("--js-flags='--max-old-space-size=128'") # Caps chrome JS engine allocation
+            chrome_options.add_argument("--js-flags='--max-old-space-size=128'") 
             chrome_options.add_argument("--disable-extensions")
             chrome_options.add_argument("--window-size=800,600")
             
@@ -253,7 +266,6 @@ if uploaded_file is not None:
                                 for attempt in range(1, 4):
                                     row_attempts = max(row_attempts, attempt)
                                     try:
-                                        # Use standard chunks to keep RAM steady
                                         response = session.get(download_url, timeout=45, stream=True)
                                         if response.status_code == 200:
                                             with open(file_save_path, "wb") as f:
@@ -299,7 +311,6 @@ if uploaded_file is not None:
                     except Exception as e:
                         operation_context.write(f"⚠️ Anomaly recorded on row {reg_no}: {e}")
                     
-                    # 🔥 FORCE RECLAIM MEMORY ON EACH LOOP CYCLE
                     session.close()
                     gc.collect()
                     engine_progressbar.progress((idx + 1) / total_vehicles_count)
@@ -314,7 +325,6 @@ if uploaded_file is not None:
                 
                 master_delivery_zip = "Master_Extracted_Package.zip"
                 
-                # Zip write phase
                 with zipfile.ZipFile(master_delivery_zip, 'w', zipfile.ZIP_DEFLATED) as master_zip:
                     for root, dirs, files in os.walk(CURRENT_BATCH_DIR):
                         for file in files:
@@ -326,19 +336,16 @@ if uploaded_file is not None:
                 archive_size = os.path.getsize(master_delivery_zip) / (1024 * 1024)
                 st.success(f"🎉 Everything compiled! Total Archive Size: {archive_size:.2f} MB")
                 
-                # 🔥 ZERO FOOTPRINT BUFFER FIX: Direct binary distribution channel
-                # Is block me variable content build up ko directly download handler me pipeline kiya h
                 with open(master_delivery_zip, "rb") as file_pointer:
                     st.download_button(
                         label="📥 DOWNLOAD IMAGES & REPORT",
-                        data=file_pointer, # Directly pass open file handler instead of file_bytes string variable
+                        data=file_pointer,
                         file_name=f"Royal_Sundaram_Package_{datetime.now().strftime('%d-%m-%Y')}.zip",
                         mime="application/zip",
                         type="primary",
                         use_container_width=True
                     )
                 
-                # Final Cache Flush
                 del report_data
                 gc.collect()
 
