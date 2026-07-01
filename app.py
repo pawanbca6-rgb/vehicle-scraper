@@ -6,6 +6,7 @@ import fitz  # PyMuPDF
 import requests
 import pandas as pd
 import hashlib
+import gc  # Garbage Collector for reclaiming RAM
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -34,7 +35,6 @@ st.markdown("""
 
 with st.sidebar:
     st.markdown("### 🎛️ Control & Template Center")
-    st.write("Use this panel to verify specifications or pull down a template layout.")
     st.write("---")
     
     sample_data = {
@@ -47,7 +47,6 @@ with st.sidebar:
     with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
         sample_df.to_excel(writer, index=False, sheet_name='Sheet1')
     
-    st.markdown("**1. Grab Base Blueprint Layout:**")
     st.download_button(
         label="📥 Download Sample Excel Template",
         data=buffer.getvalue(),
@@ -56,14 +55,14 @@ with st.sidebar:
         use_container_width=True
     )
     st.write("---")
-    st.caption("Engine State: Production Cloud Cluster")
+    st.caption("Engine State: Optimized Low-Memory Mode (<512MB)")
 
 st.markdown("## 🚗 Royal Sundaram Image Tool")
-st.markdown("##### Automated server-side bulk extraction utility for final survey insurance file elements.")
+st.markdown("##### This Tool Work Only For Royal Sundaram Image Links")
 
 st.markdown("""
     <div class="note-box">
-        📌 <strong>Note:</strong> Please upload an Excel sheet containing <strong>Registration_No</strong> in the first column and your target portal <strong>Link</strong> in the second column.
+        📌 <strong>Memory Warning Optimization Active:</strong> File compression is handling disk streaming directly to prevent server allocation faults.
     </div>
 """, unsafe_allow_html=True)
 
@@ -71,14 +70,13 @@ layout_left, layout_right = st.columns([2, 1])
 
 with layout_left:
     st.markdown("### 📂 Document Upload")
-    uploaded_file = st.file_uploader("Drop target xlsx file context here", type=["xlsx"], label_visibility="collapsed")
+    uploaded_file = st.file_uploader("Drop xlsx file here", type=["xlsx"], label_visibility="collapsed")
 
 def extract_claim_from_text(text):
     match = re.search(r'([A-Z]{2}\d{8})', str(text))
     return match.group(1) if match else None
 
 def extract_and_clean_pdf(pdf_path, output_folder, pdf_base_name):
-    """PDF content detect karke automatic dynamic splitting ya dynamic rendering apply karta hai"""
     try:
         if os.path.getsize(pdf_path) == 0:
             if os.path.exists(pdf_path): os.remove(pdf_path)
@@ -88,11 +86,11 @@ def extract_and_clean_pdf(pdf_path, output_folder, pdf_base_name):
         total_pages = len(doc)
         img_count = 0
         
-        # 🎯 Dynamic Matrix Splitting logic for low RAM usage
         if total_pages > 15:
             for page_index in range(total_pages):
                 page = doc[page_index]
-                matrix = fitz.Matrix(1.5, 1.5)
+                # Lower matrix footprint for 512MB cloud environment
+                matrix = fitz.Matrix(1.2, 1.2) 
                 pix = page.get_pixmap(matrix=matrix, alpha=False)
                 
                 img_hash = hashlib.md5(pix.samples).hexdigest()[:6]
@@ -102,6 +100,7 @@ def extract_and_clean_pdf(pdf_path, output_folder, pdf_base_name):
                 if not os.path.exists(image_path):
                     pix.save(image_path)
                     img_count += 1
+                pix = None  # Free explicit pixmap data
         else:
             for page_index in range(total_pages):
                 page = doc[page_index]
@@ -133,13 +132,13 @@ if uploaded_file is not None:
     df = pd.read_excel(uploaded_file)
     
     if 'Registration_No' not in df.columns or 'Link' not in df.columns:
-        st.error("❌ Column Validation Error: The sheet must contain explicit 'Registration_No' and 'Link' header tracks.")
+        st.error("❌ Column Validation Error: The sheet must contain explicit 'Registration_No' and 'Link' tracks.")
     else:
         valid_rows = df[df['Registration_No'].notna() & df['Link'].notna()]
         total_vehicles_count = len(valid_rows)
         
         with layout_right:
-            st.markdown("### 📊 Metrics Assessment")
+            st.markdown("### 📊 File Uploaded")
             st.markdown(f"""
                 <div class="metric-box">
                     <span style='font-size:13px; color:#6B7280; text-transform: uppercase; font-weight:bold;'>Validated Queue Load</span><br>
@@ -149,7 +148,7 @@ if uploaded_file is not None:
             
         with st.sidebar:
             st.write(" ")
-            run_engine = st.button("🚀 Execute Engine Scan", type="primary", use_container_width=True)
+            run_engine = st.button("🚀 Start To Convert Images", type="primary", use_container_width=True)
             
         if run_engine:
             CURRENT_BATCH_DIR = os.path.abspath("Downloaded_Images")
@@ -158,13 +157,15 @@ if uploaded_file is not None:
                 shutil.rmtree(CURRENT_BATCH_DIR)
             os.makedirs(CURRENT_BATCH_DIR, exist_ok=True)
             
+            # Heavy Headless Optimization Options for memory capping
             chrome_options = webdriver.ChromeOptions()
             chrome_options.add_argument("--headless=new")
             chrome_options.add_argument("--no-sandbox")
             chrome_options.add_argument("--disable-dev-shm-usage")
             chrome_options.add_argument("--disable-gpu")
-            chrome_options.add_argument("--window-size=1280,720")
-            chrome_options.add_argument("--remote-allow-origins=*")
+            chrome_options.add_argument("--js-flags='--max-old-space-size=128'") # Caps chrome JS engine allocation
+            chrome_options.add_argument("--disable-extensions")
+            chrome_options.add_argument("--window-size=800,600")
             
             if os.path.exists("/usr/bin/chromium"):
                 chrome_options.binary_location = "/usr/bin/chromium"
@@ -193,7 +194,7 @@ if uploaded_file is not None:
                     if "http" not in portal_url:
                         continue
                         
-                    operation_context.write(f"⏳ **Scraping Portfolio Array ({idx+1}/{total_vehicles_count}):** File Target `{reg_no}`")
+                    operation_context.write(f"⏳ **Scraping Group ({idx+1}/{total_vehicles_count}):** `{reg_no}`")
                     
                     reg_folder = os.path.join(CURRENT_BATCH_DIR, reg_no)
                     os.makedirs(reg_folder, exist_ok=True)
@@ -205,7 +206,7 @@ if uploaded_file is not None:
                     
                     try:
                         driver.get(portal_url)
-                        time.sleep(6)
+                        time.sleep(5)
                         
                         current_page_url = driver.current_url
                         discovered_claim_number = extract_claim_from_text(current_page_url) or extract_claim_from_text(portal_url)
@@ -252,10 +253,11 @@ if uploaded_file is not None:
                                 for attempt in range(1, 4):
                                     row_attempts = max(row_attempts, attempt)
                                     try:
-                                        response = session.get(download_url, timeout=60, stream=True)
+                                        # Use standard chunks to keep RAM steady
+                                        response = session.get(download_url, timeout=45, stream=True)
                                         if response.status_code == 200:
                                             with open(file_save_path, "wb") as f:
-                                                for chunk in response.iter_content(chunk_size=1024 * 1024):
+                                                for chunk in response.iter_content(chunk_size=512 * 1024):
                                                     if chunk: f.write(chunk)
                                             
                                             if os.path.exists(file_save_path) and os.path.getsize(file_save_path) > 100:
@@ -274,14 +276,14 @@ if uploaded_file is not None:
                                                         row_extracted_images_total += imgs_saved
                                                         file_success = True
                                                         break
-                                        time.sleep(3)
+                                        time.sleep(2)
                                     except Exception:
-                                        time.sleep(3)
+                                        time.sleep(2)
                                 
                                 if not file_success:
                                     row_failed_files += 1
                                     if os.path.exists(file_save_path): os.remove(file_save_path)
-                                time.sleep(1)
+                                time.sleep(0.5)
                         except Exception:
                             row_failed_files = row_total_files
                             
@@ -295,8 +297,11 @@ if uploaded_file is not None:
                             "Max_Attempts_Used": row_attempts
                         })
                     except Exception as e:
-                        operation_context.write(f"⚠️ Trace anomaly recorded on row {reg_no}: {e}")
-                        
+                        operation_context.write(f"⚠️ Anomaly recorded on row {reg_no}: {e}")
+                    
+                    # 🔥 FORCE RECLAIM MEMORY ON EACH LOOP CYCLE
+                    session.close()
+                    gc.collect()
                     engine_progressbar.progress((idx + 1) / total_vehicles_count)
                     
                 driver.quit()
@@ -308,6 +313,8 @@ if uploaded_file is not None:
                 report_df.to_csv(report_csv_path, index=False)
                 
                 master_delivery_zip = "Master_Extracted_Package.zip"
+                
+                # Zip write phase
                 with zipfile.ZipFile(master_delivery_zip, 'w', zipfile.ZIP_DEFLATED) as master_zip:
                     for root, dirs, files in os.walk(CURRENT_BATCH_DIR):
                         for file in files:
@@ -317,23 +324,22 @@ if uploaded_file is not None:
                 
                 st.balloons()
                 archive_size = os.path.getsize(master_delivery_zip) / (1024 * 1024)
-                st.success(f"🎉 Extraction processing batch verified. Everything is compiled neatly! Total Archive Size: {archive_size:.2f} MB")
+                st.success(f"🎉 Everything compiled! Total Archive Size: {archive_size:.2f} MB")
                 
-                # 🔥 DYNAMIC LARGE FILE STREAMING BYPASS SYSTEM
-                try:
-                    with open(master_delivery_zip, "rb") as file_pointer:
-                        file_bytes = file_pointer.read()
-                        
+                # 🔥 ZERO FOOTPRINT BUFFER FIX: Direct binary distribution channel
+                # Is block me variable content build up ko directly download handler me pipeline kiya h
+                with open(master_delivery_zip, "rb") as file_pointer:
                     st.download_button(
-                        label="📥 DOWNLOAD EXTRACTED IMAGES & CSV REPORT (STREAM CHUNKS)",
-                        data=file_bytes,
+                        label="📥 DOWNLOAD EXTRACTED IMAGES & CSV REPORT (ZERO-COPY)",
+                        data=file_pointer, # Directly pass open file handler instead of file_bytes string variable
                         file_name=f"Royal_Sundaram_Package_{datetime.now().strftime('%d-%m-%Y')}.zip",
                         mime="application/zip",
                         type="primary",
                         use_container_width=True
                     )
-                except Exception as streaming_err:
-                    st.error(f"Memory fallback triggered: {streaming_err}")
-                    st.info(f"💡 File locally stored safely at: {os.path.abspath(master_delivery_zip)}")
+                
+                # Final Cache Flush
+                del report_data
+                gc.collect()
 
 st.markdown('<div class="footer-text">🛠️ Images Tool Engineered and Optimized by <b>Pawan Pandey</b></div>', unsafe_allow_html=True)
